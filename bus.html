@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Home Bus</title>
+  <title>Bus Home</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -208,7 +208,7 @@
 <body>
 
 <header>
-  <span class="title">Home Bus</span>
+  <span class="title">Bus Home</span>
   <span class="clock" id="clock"></span>
 </header>
 
@@ -226,8 +226,8 @@
   const KEY   = 'TEST';
 
   const STOPS = [
-    { id: '1_570', label: '3rd & Union',  dir: 'NW bound' },
-    { id: '1_558', label: '3rd & Seneca', dir: 'NW bound' },
+    { id: '1_570', label: '3rd & Union',  dir: 'NW bound', routes: ['28'] },
+    { id: '1_558', label: '3rd & Seneca', dir: 'NW bound', routes: ['D'] },
   ];
 
   const ROUTES = [
@@ -292,7 +292,7 @@
   }
 
   function renderStop(stop, deps) {
-    const rows = ROUTES.map(route => {
+    const rows = ROUTES.filter(r => stop.routes.includes(r.key)).map(route => {
       const arrivals = nextArrivals(deps, route);
       let arrivalsHtml;
       if (!arrivals.length) {
