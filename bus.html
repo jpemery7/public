@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Home Bus</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0a0f1e;
+      color: #e2e8f0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      padding: 20px 16px 16px;
+      gap: 14px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    .clock {
+      font-size: 1rem;
+      font-weight: 500;
+      color: #64748b;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .stop-card {
+      background: #131929;
+      border: 1px solid #1e2d45;
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .stop-header {
+      padding: 10px 16px 8px;
+      background: #0f1826;
+      border-bottom: 1px solid #1e2d45;
+    }
+
+    .stop-name {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: #475569;
+    }
+
+    .route-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+      border-bottom: 1px solid #1a2539;
+    }
+
+    .route-row:last-child {
+      border-bottom: none;
+    }
+
+    .route-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .badge {
+      font-size: 1.1rem;
+      font-weight: 800;
+      padding: 5px 12px;
+      border-radius: 8px;
+      min-width: 52px;
+      text-align: center;
+      letter-spacing: -0.01em;
+    }
+
+    .badge-28  { background: #1d4ed8; color: #fff; }
+    .badge-d   { background: #059669; color: #fff; }
+
+    .route-dest {
+      font-size: 0.8rem;
+      color: #64748b;
+      font-weight: 500;
+    }
+
+    .arrivals {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .arrival-pill {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 44px;
+    }
+
+    .minutes {
+      font-size: 1.8rem;
+      font-weight: 800;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+      color: #e2e8f0;
+    }
+
+    .minutes.now    { color: #ef4444; font-size: 1.2rem; line-height: 1.5; }
+    .minutes.urgent { color: #f97316; }
+    .minutes.soon   { color: #eab308; }
+
+    .min-unit {
+      font-size: 0.6rem;
+      font-weight: 600;
+      color: #475569;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-top: 1px;
+    }
+
+    .live-badge {
+      font-size: 0.55rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-top: 2px;
+    }
+
+    .live-badge.realtime { color: #10b981; }
+    .live-badge.sched    { color: #334155; }
+
+    .dot {
+      display: inline-block;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      margin-right: 2px;
+      vertical-align: middle;
+      position: relative;
+      top: -1px;
+    }
+
+    .dot.realtime { background: #10b981; }
+    .dot.sched    { background: #334155; }
+
+    .sep { color: #1e2d45; font-size: 1.4rem; font-weight: 300; }
+
+    .no-service {
+      font-size: 0.85rem;
+      color: #334155;
+      font-style: italic;
+    }
+
+    footer {
+      margin-top: auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .status {
+      font-size: 0.7rem;
+      color: #334155;
+    }
+
+    .refresh-btn {
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #64748b;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .refresh-btn:active {
+      background: #293548;
+      color: #94a3b8;
+    }
+
+    .spinning { animation: spin 0.8s linear infinite; display: inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .error-msg {
+      font-size: 0.8rem;
+      color: #ef4444;
+      text-align: center;
+      padding: 8px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <span class="title">Home Bus</span>
+  <span class="clock" id="clock"></span>
+</header>
+
+<div id="app">
+  <div class="stop-card"><div style="padding:24px;text-align:center;color:#334155">Loading&hellip;</div></div>
+</div>
+
+<footer>
+  <span class="status" id="status"></span>
+  <button class="refresh-btn" id="refreshBtn" onclick="doRefresh()">&#8635; Refresh</button>
+</footer>
+
+<script>
+  const API   = 'https://api.pugetsound.onebusaway.org/api/where';
+  const KEY   = 'TEST';
+
+  const STOPS = [
+    { id: '1_570', label: '3rd & Union',  dir: 'NW bound' },
+    { id: '1_558', label: '3rd & Seneca', dir: 'NW bound' },
+  ];
+
+  const ROUTES = [
+    {
+      key: '28',
+      match: n => n === '28' || n === '028',
+      badge: '28',
+      badgeClass: 'badge-28',
+      dest: 'Crown Hill',
+    },
+    {
+      key: 'D',
+      match: n => /^d(\s*line)?$/i.test(n) || /rapidride\s*d/i.test(n),
+      badge: 'D',
+      badgeClass: 'badge-d',
+      dest: 'Crown Hill',
+    },
+  ];
+
+  let refreshTimer = null;
+
+  function now() { return Date.now(); }
+
+  function minsUntil(ms) {
+    return Math.round((ms - now()) / 60000);
+  }
+
+  function minClass(m) {
+    if (m <= 0)  return 'now';
+    if (m <= 2)  return 'urgent';
+    if (m <= 6)  return 'soon';
+    return '';
+  }
+
+  function renderArrival(a) {
+    const m = minsUntil(a.time);
+    const cls = minClass(m);
+    const label = m <= 0 ? 'Now' : String(m);
+    const liveClass = a.live ? 'realtime' : 'sched';
+    const liveText  = a.live ? 'live'     : 'sched';
+    return `
+      <div class="arrival-pill">
+        <span class="minutes ${cls}">${label}</span>
+        ${m > 0 ? '<span class="min-unit">min</span>' : ''}
+        <span class="live-badge ${liveClass}">
+          <span class="dot ${liveClass}"></span>${liveText}
+        </span>
+      </div>`;
+  }
+
+  function nextArrivals(deps, route, n = 2) {
+    const cutoff = now() - 30000; // include buses that left ~30s ago
+    return deps
+      .filter(d => route.match(d.routeShortName || ''))
+      .map(d => ({
+        time: d.predicted ? d.predictedArrivalTime : d.scheduledArrivalTime,
+        live: !!d.predicted,
+      }))
+      .filter(d => d.time > cutoff)
+      .sort((a, b) => a.time - b.time)
+      .slice(0, n);
+  }
+
+  function renderStop(stop, deps) {
+    const rows = ROUTES.map(route => {
+      const arrivals = nextArrivals(deps, route);
+      let arrivalsHtml;
+      if (!arrivals.length) {
+        arrivalsHtml = '<span class="no-service">No service soon</span>';
+      } else {
+        arrivalsHtml = '<div class="arrivals">';
+        arrivals.forEach((a, i) => {
+          if (i > 0) arrivalsHtml += '<span class="sep">&middot;</span>';
+          arrivalsHtml += renderArrival(a);
+        });
+        arrivalsHtml += '</div>';
+      }
+      return `
+        <div class="route-row">
+          <div class="route-left">
+            <span class="badge ${route.badgeClass}">${route.badge}</span>
+            <span class="route-dest">${route.dest}</span>
+          </div>
+          ${arrivalsHtml}
+        </div>`;
+    }).join('');
+
+    return `
+      <div class="stop-card">
+        <div class="stop-header">
+          <span class="stop-name">${stop.label} &mdash; ${stop.dir}</span>
+        </div>
+        ${rows}
+      </div>`;
+  }
+
+  async function fetchStop(stop) {
+    const url = `${API}/arrivals-and-departures-for-stop/${stop.id}.json?key=${KEY}&minutesBefore=0&minutesAfter=90`;
+    const r = await fetch(url);
+    if (!r.ok) throw new Error(`Stop ${stop.label}: HTTP ${r.status}`);
+    const j = await r.json();
+    return j.data.entry.arrivalsAndDepartures;
+  }
+
+  async function doRefresh() {
+    const btn = document.getElementById('refreshBtn');
+    btn.innerHTML = '<span class="spinning">&#8635;</span> Refresh';
+    btn.disabled = true;
+
+    try {
+      const results = await Promise.all(STOPS.map(fetchStop));
+      const html = STOPS.map((s, i) => renderStop(s, results[i])).join('');
+      document.getElementById('app').innerHTML = html;
+
+      const t = new Date();
+      document.getElementById('status').textContent =
+        'Updated ' + t.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } catch (e) {
+      document.getElementById('app').innerHTML +=
+        `<div class="error-msg">&#9888; ${e.message}</div>`;
+      document.getElementById('status').textContent = 'Refresh failed';
+    } finally {
+      btn.innerHTML = '&#8635; Refresh';
+      btn.disabled = false;
+    }
+
+    clearInterval(refreshTimer);
+    refreshTimer = setInterval(doRefresh, 30000);
+  }
+
+  function updateClock() {
+    document.getElementById('clock').textContent =
+      new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  doRefresh();
+  updateClock();
+  setInterval(updateClock, 1000);
+</script>
+
+</body>
+</html>
