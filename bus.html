@@ -99,15 +99,37 @@
 
     .arrivals {
       display: flex;
-      align-items: center;
-      gap: 10px;
+      flex-direction: column;
+      gap: 8px;
+      align-items: flex-end;
     }
 
     .arrival-pill {
       display: flex;
-      flex-direction: column;
       align-items: center;
-      min-width: 44px;
+      gap: 10px;
+    }
+
+    .arrival-mins {
+      display: flex;
+      align-items: baseline;
+      gap: 3px;
+      min-width: 58px;
+      justify-content: flex-end;
+    }
+
+    .arrival-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1px;
+    }
+
+    .arrival-clock {
+      font-size: 0.72rem;
+      color: #64748b;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
     }
 
     .minutes {
@@ -128,7 +150,6 @@
       color: #475569;
       text-transform: uppercase;
       letter-spacing: 0.06em;
-      margin-top: 1px;
     }
 
     .live-badge {
@@ -136,7 +157,6 @@
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      margin-top: 2px;
     }
 
     .live-badge.realtime { color: #10b981; }
@@ -155,8 +175,6 @@
 
     .dot.realtime { background: #10b981; }
     .dot.sched    { background: #334155; }
-
-    .sep { color: #1e2d45; font-size: 1.4rem; font-weight: 300; }
 
     .no-service {
       font-size: 0.85rem;
@@ -255,6 +273,10 @@
     return Math.round((ms - now()) / 60000);
   }
 
+  function clockTime(ms) {
+    return new Date(ms).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
+  }
+
   function minClass(m) {
     if (m <= 0)  return 'now';
     if (m <= 2)  return 'urgent';
@@ -270,15 +292,20 @@
     const liveText  = a.live ? 'live'     : 'sched';
     return `
       <div class="arrival-pill">
-        <span class="minutes ${cls}">${label}</span>
-        ${m > 0 ? '<span class="min-unit">min</span>' : ''}
-        <span class="live-badge ${liveClass}">
-          <span class="dot ${liveClass}"></span>${liveText}
-        </span>
+        <div class="arrival-mins">
+          <span class="minutes ${cls}">${label}</span>
+          ${m > 0 ? '<span class="min-unit">min</span>' : ''}
+        </div>
+        <div class="arrival-right">
+          ${m > 0 ? `<span class="arrival-clock">arriving ${clockTime(a.time)}</span>` : ''}
+          <span class="live-badge ${liveClass}">
+            <span class="dot ${liveClass}"></span>${liveText}
+          </span>
+        </div>
       </div>`;
   }
 
-  function nextArrivals(deps, route, n = 2) {
+  function nextArrivals(deps, route, n = 3) {
     const cutoff = now() - 30000; // include buses that left ~30s ago
     return deps
       .filter(d => route.match(d.routeShortName || ''))
@@ -299,8 +326,7 @@
         arrivalsHtml = '<span class="no-service">No service soon</span>';
       } else {
         arrivalsHtml = '<div class="arrivals">';
-        arrivals.forEach((a, i) => {
-          if (i > 0) arrivalsHtml += '<span class="sep">&middot;</span>';
+        arrivals.forEach(a => {
           arrivalsHtml += renderArrival(a);
         });
         arrivalsHtml += '</div>';
@@ -325,7 +351,7 @@
   }
 
   async function fetchStop(stop) {
-    const url = `${API}/arrivals-and-departures-for-stop/${stop.id}.json?key=${KEY}&minutesBefore=0&minutesAfter=90`;
+    const url = `${API}/arrivals-and-departures-for-stop/${stop.id}.json?key=${KEY}&minutesBefore=0&minutesAfter=120`;
     const r = await fetch(url);
     if (!r.ok) throw new Error(`Stop ${stop.label}: HTTP ${r.status}`);
     const j = await r.json();
